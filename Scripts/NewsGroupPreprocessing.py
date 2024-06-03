@@ -10,7 +10,7 @@ document_re = re.compile(r'^Newsgroup:.*?(?=^Newsgroup:|\Z)', re.DOTALL | re.MUL
 subject_re = re.compile(r'^Subject:.*', re.MULTILINE)
 
 # Dataset filepath
-data_path = "C:/Users/tom/OneDrive/Documents/Postgrad/Dissertation/SKL 20 Newsgroup DS/archive/"
+data_path = "C:/Users/tom/OneDrive/Documents/Postgrad/Dissertation/Datasets/Raw/20NG/"
 
 # Get the filenames of the dataset
 def GetNewsFileNames():
