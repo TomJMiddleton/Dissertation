@@ -1,0 +1,18 @@
+# Virtual environment
+.venv/
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Data files
+Datasets/Raw/
+Datasets/Processed/
+
+# Research Parts
+Misc/
