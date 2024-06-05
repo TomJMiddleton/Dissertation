@@ -63,8 +63,8 @@ def RemoveNewsFormatting(news_filenames):
                     newsgroup_text.append(ExtractDocumentText(doc))
     return newsgroup_text
 
-
-db_filenames = GetNewsFileNames()
-unformatted_text = RemoveNewsFormatting(db_filenames)
-print(len(unformatted_text))
-print(unformatted_text[1010])
+def TestNewsCleaning():
+    db_filenames = GetNewsFileNames()
+    unformatted_text = RemoveNewsFormatting(db_filenames)
+    print(len(unformatted_text))
+    print(unformatted_text[1010])
