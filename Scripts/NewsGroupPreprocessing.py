@@ -25,7 +25,8 @@ def ExtractDocumentIndex(document):
 def ExtractDocumentText(document):
     lines = document.split('\n')
     main_text_lines = lines[4:]
-    text = '\n'.join(main_text_lines).strip()
+    text = ' '.join(main_text_lines).strip()
+    text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def GenerateNewsIndexes(news_filenames):
