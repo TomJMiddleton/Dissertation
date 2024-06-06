@@ -7,7 +7,7 @@ import csv
 
 
 def AddNE(entity, doc_id):
-    entity = entity.translate(punc_trans_table)
+    entity = entity.translate(PUNCTUATION_TRANSLATION_TABLE)
     entity = entity.lower().strip()
     if len(entity) < 2: return
     if entity not in known_entities:
@@ -15,7 +15,9 @@ def AddNE(entity, doc_id):
         entity_doc_dict[entity] = [doc_id]
     else:
         entity_doc_dict[entity].append(doc_id)
-    doc_entity_dict[doc_id].append(entity)
+    if entity not in doc_entities:
+        doc_entity_dict[doc_id].append(entity)
+        doc_entities.add(entity)
 
 def ProcessDocument(model, doc, doc_id):
     proc_doc = model(doc)
@@ -28,6 +30,7 @@ def ProcessData(text_data, starting_doc_idx = 0):
     doc_idx = starting_doc_idx
     model = spacy.load("en_core_web_sm")
     for text_n in text_data:
+        doc_entities.clear()
         ProcessDocument(model, text_n, doc_idx)
         doc_idx += 1
     return doc_idx
@@ -42,17 +45,24 @@ def ExportEntityData(dict_ref, dict_name):
                 row = [key] + values
                 writer.writerow(row)
 
-punc_trans_table = str.maketrans("", "", string.punctuation)
+def NERForNewsGroup():
+    known_entities.clear()
+    doc_entities.clear()
+    entity_doc_dict.clear()
+    doc_entity_dict.clear()
 
+    db_filenames = GetNewsFileNames()
+    unformatted_text = RemoveNewsFormatting(db_filenames)
+    num_docs_processed = ProcessData(unformatted_text)
+    print(f"\n Number of documents Name Entity Processed: {num_docs_processed} \n")
+    ExportEntityData(entity_doc_dict, "EntityDoc")
+    ExportEntityData(doc_entity_dict, "DocEntity")
+    print("\n Data Exported \n")
 
-db_filenames = GetNewsFileNames()
-unformatted_text = RemoveNewsFormatting(db_filenames)
-
+PUNCTUATION_TRANSLATION_TABLE = str.maketrans("", "", string.punctuation)
 known_entities = set()
+doc_entities = set()
 entity_doc_dict = {}
 doc_entity_dict = {}
 
-num_docs_processed = ProcessData(unformatted_text)
-print(num_docs_processed)
-ExportEntityData(entity_doc_dict, "EntityDoc")
-ExportEntityData(doc_entity_dict, "DocEntity")
+NERForNewsGroup()
