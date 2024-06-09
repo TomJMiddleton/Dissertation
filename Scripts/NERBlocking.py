@@ -107,4 +107,4 @@ entity_doc_dict = {}
 doc_entity_dict = {}
 
 #NERForNewsGroup()
-NERForEnron()
+#NERForEnron()
