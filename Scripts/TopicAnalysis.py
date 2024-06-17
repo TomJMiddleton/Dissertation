@@ -1,5 +1,5 @@
 ### Thomas Middleton
-from NewsGroupPreprocessing import GetNewsFileNames, RemoveNewsFormatting
+from NewsGroupPreprocessing import GetNewssave_file_names, RemoveNewsFormatting
 import string 
 from gensim.corpora import MmCorpus
 from gensim.models import LdaModel
@@ -10,7 +10,7 @@ nltk.download('stopwords')
 
 # Preprocess the text
 def TokeniseDoc(document):
-    document = document.translate(punct_table).strip()
+    document = document.translate(PUNCT_TABLE).strip()
     tokens = [word for word in document.lower().split()]
     clean_tokens = []
     for token in tokens:
@@ -38,36 +38,36 @@ def ImportLDAModel(path, name):
     return lda_loaded, dictionary_loaded, corpus_loaded
 
 def NERForNewsGroup(NUMTOPICS):
-    db_filenames = GetNewsFileNames()
-    unformatted_text = RemoveNewsFormatting(db_filenames)
+    db_save_file_names = GetNewssave_file_names()
+    unformatted_text = RemoveNewsFormatting(db_save_file_names)
     corpus = ProcessChunk(unformatted_text)
     print("\n Data Imported \n")
     lda = LdaModel(corpus=corpus, num_topics=NUMTOPICS, id2word=dictionary, passes=15)
     print("\n LDA completed \n")
     return lda, corpus
 
+def PrintTopics(lda, n_words):
+    for i, topic in lda.print_topics(num_topics=NUMTOPICS, num_words=n_words):
+        print(f"Topic {i}: {topic}")
 
-# Token filter
+# CONSTANTS -----------------------------------------------------------------------------
 NBELOW = 12
 NOVER = 0.3
 NKEEP = 60000
 
 NUMTOPICS = 20
 STOPWORDS = set(stopwords.words('english'))
-punct_table = str.maketrans('', '', string.punctuation)
+PUNCT_TABLE = str.maketrans('', '', string.punctuation)
 
-SAVEPATH = "Datasets/Processed/20NG/"
-
-for i in range(10):
-    STOPWORDS.add(str(i))
-#print(STOPWORDS)
-
+# Variables -----------------------------------------------------------------------------
 dictionary = Dictionary()
+save_file_path = "Datasets/Processed/20NG/"
+save_file_name = "TestOne"
+
+# Code ----------------------------------------------------------------------------------
+
 lda, corpus = NERForNewsGroup(NUMTOPICS)
 
-# Print the topics
-for i, topic in lda.print_topics(num_topics=NUMTOPICS, num_words=3):
-    print(f"Topic {i}: {topic}")
+ExportLDAModel(save_file_path, save_file_name)
 
-
-ExportLDAModel(SAVEPATH, "TestOne")
+lda, dictionary, corpus = ImportLDAModel(save_file_path, save_file_name)
