@@ -10,17 +10,18 @@ nltk.download('stopwords')
 
 # Preprocess the text
 def TokeniseDoc(document):
+    document = document.translate(punct_table).strip()
     tokens = [word for word in document.lower().split()]
     clean_tokens = []
     for token in tokens:
-        clean_token = token.translate(punct_table).strip()
-        if clean_token and clean_token not in STOPWORDS:
-            clean_tokens.append(clean_token)
+        if len(token) > 1 and token not in STOPWORDS and token.isdigit() == False:
+            clean_tokens.append(token)
     return clean_tokens
 
 def ProcessChunk(docs):
     tokenised_texts = [TokeniseDoc(doc) for doc in docs]
     dictionary.add_documents(tokenised_texts)
+    dictionary.filter_extremes(no_below=NBELOW, no_above=NOVER, keep_n=NKEEP)
     return [dictionary.doc2bow(text) for text in tokenised_texts]
 
 def ExportLDAModel(path, name):
@@ -45,10 +46,18 @@ def NERForNewsGroup(NUMTOPICS):
     print("\n LDA completed \n")
     return lda, corpus
 
-punct_table = str.maketrans('', '', string.punctuation)
-SAVEPATH = "Datasets/Processed/20NG/"
+
+# Token filter
+NBELOW = 12
+NOVER = 0.3
+NKEEP = 60000
+
 NUMTOPICS = 20
 STOPWORDS = set(stopwords.words('english'))
+punct_table = str.maketrans('', '', string.punctuation)
+
+SAVEPATH = "Datasets/Processed/20NG/"
+
 for i in range(10):
     STOPWORDS.add(str(i))
 #print(STOPWORDS)
