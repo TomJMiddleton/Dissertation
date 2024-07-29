@@ -119,35 +119,7 @@ class BERTNERModel():
             return pd.DataFrame()
 
 
-def AlignCoNNLLabels(labels, tokenized_inputs):
-    """
-    Align the IOB labelled tokens with the tokenization structure.
-    ----------
-    Parameters:
-    labels : List[List[str]]
-        Contains the NER labels for the tokens.
-    tokenized_inputs : transformers.tokenization_utils_base.BatchEncoding
-        The output from a tokenizer, which includes the tokenized inputs and the word IDs for each token.
-    ----------
-    Returns:
-    aligned_labels : List[List[int]]
-        Contains the aligned NER labels for the tokens. -100 is used for special tokens (e.g., [CLS], [SEP]).
-    """
-    aligned_labels = []
-    for i, label in enumerate(labels):
-        word_ids = tokenized_inputs.word_ids(batch_index=i)
-        previous_word_idx = None
-        label_ids = []
-        for word_idx in word_ids:
-            if word_idx is None:
-                label_ids.append(-100)  # Use -100 for special tokens
-            elif word_idx != previous_word_idx:
-                label_ids.append(label[word_idx])
-            else:
-                label_ids.append(label[word_idx])  # Use the same label for subwords
-            previous_word_idx = word_idx
-        aligned_labels.append(label_ids)
-    return aligned_labels
+
 
 def xxGetSpacyPredictions(nlp, sentences):
     """
@@ -185,28 +157,52 @@ def xxGetSpacyPredictions(nlp, sentences):
     
     return all_predictions
 
-def GetSpacyPredictions(nlp, sentences):
+def align_tokens(spacy_tokens, original_tokens):
+    alignment = {}
+    spacy_idx = 0
+    orig_idx = 0
+    while spacy_idx < len(spacy_tokens) and orig_idx < len(original_tokens):
+        if spacy_tokens[spacy_idx] == original_tokens[orig_idx]:
+            alignment[spacy_idx] = orig_idx
+            spacy_idx += 1
+            orig_idx += 1
+        elif spacy_tokens[spacy_idx].startswith(original_tokens[orig_idx]):
+            alignment[spacy_idx] = orig_idx
+            spacy_idx += 1
+        else:
+            orig_idx += 1
+    return alignment
+
+def GetSpacyPredictions(nlp, sentences, original_tokens):
     all_predictions = []
     
-    for i, sentence in enumerate(sentences):
+    # Map Spacy labels to CoNLL-2003 labels
+    label_map = {
+        'PERSON': 'PER', 'ORG': 'ORG', 'GPE': 'LOC', 'LOC': 'LOC',
+        'PRODUCT': 'MISC', 'WORK_OF_ART': 'MISC', 'LAW': 'MISC', 'LANGUAGE': 'MISC',
+        'EVENT': 'MISC', 'NORP': 'MISC'
+    }
+    
+    for i, (sentence, orig_tokens) in enumerate(zip(sentences, original_tokens)):
         doc = nlp(sentence)
-        word_predictions = ['O'] * len(doc)
+        spacy_tokens = [token.text for token in doc]
+        alignment = align_tokens(spacy_tokens, orig_tokens)
+        
+        word_predictions = ['O'] * len(orig_tokens)
         
         for ent in doc.ents:
-            start_token = ent.start
-            end_token = ent.end
-            
-            for j in range(start_token, end_token):
-                if j == start_token:
-                    word_predictions[j] = f'B-{ent.label_}'
-                else:
-                    word_predictions[j] = f'I-{ent.label_}'
+            if ent.label_ in label_map:
+                start_token = alignment.get(ent.start, -1)
+                end_token = alignment.get(ent.end - 1, -1) + 1
+                if start_token != -1 and end_token != -1:
+                    for j in range(start_token, end_token):
+                        if j < len(word_predictions):
+                            if j == start_token:
+                                word_predictions[j] = f'B-{label_map[ent.label_]}'
+                            else:
+                                word_predictions[j] = f'I-{label_map[ent.label_]}'
         
         all_predictions.append(word_predictions)
-        
-        # Debug print
-        print(f"Spacy - Sentence {i}: Tokens: {len(doc)}, Predictions: {len(word_predictions)}")
-    
     return all_predictions
 
 def GetHuggingFacePredictions(ner_pipeline, sentences):
@@ -293,27 +289,27 @@ def EvaluateNERModel(model_name, use_debug_prints = False):
     # Prepare sentences and get predictions
     test_sentences = [" ".join(tokens) for tokens in test_dataset["tokens"]]
     if model_name == 'en_core_web_sm':
-        pred_labels = GetSpacyPredictions(nlp, test_sentences)
+        pred_labels = GetSpacyPredictions(nlp, test_sentences, test_dataset["tokens"])
     else:
         pred_labels = GetHuggingFacePredictions(ner_pipeline, test_sentences)
 
-    # Debug prints
-    print(f"Number of true label sequences: {len(true_labels)}")
-    print(f"Number of predicted label sequences: {len(pred_labels)}")
 
-    # Print some examples for debugging
-    for i in range(5):
-        print(f"\nExample {i+1}:")
-        print("Sentence:", test_sentences[i])
-        print("True labels:", true_labels[i])
-        print("Predicted labels:", pred_labels[i])
-        print(f"True labels length: {len(true_labels[i])}")
-        print(f"Predicted labels length: {len(pred_labels[i])}")
+    if use_debug_prints: # Debugging Help
+        print(f"Number of true label sequences: {len(true_labels)}")
+        print(f"Number of predicted label sequences: {len(pred_labels)}")
 
-    # Check if lengths match for all samples
-    mismatched = [i for i in range(len(true_labels)) if len(true_labels[i]) != len(pred_labels[i])]
-    if mismatched:
-        print(f"Mismatched lengths found in {len(mismatched)} samples. First 5 mismatched indices: {mismatched[:5]}")
+        for i in range(5):
+            print(f"\nExample {i+1}:")
+            print("Sentence:", test_sentences[i])
+            print("True labels:", true_labels[i])
+            print("Predicted labels:", pred_labels[i])
+            print(f"True labels length: {len(true_labels[i])}")
+            print(f"Predicted labels length: {len(pred_labels[i])}")
+
+        # Check if lengths match for all samples
+        mismatched = [i for i in range(len(true_labels)) if len(true_labels[i]) != len(pred_labels[i])]
+        if mismatched:
+            print(f"Mismatched lengths found in {len(mismatched)} samples. First 5 mismatched indices: {mismatched[:5]}")
 
     # Evaluate and return the classification report
     return classification_report(true_labels, pred_labels, mode='strict', scheme=IOB2)
@@ -322,6 +318,6 @@ if __name__ == "__main__":
     model_names = ['en_core_web_sm', 'dslim/bert-base-NER']
     for model_name in model_names:
         print(f"Evaluating model: {model_name}")
-        evaluation_message = EvaluateNERModel('dslim/bert-base-NER')
+        evaluation_message = EvaluateNERModel(model_name)
         print(evaluation_message)
-        break
+        
