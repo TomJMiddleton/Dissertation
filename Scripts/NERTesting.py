@@ -8,6 +8,7 @@ from datasets import load_dataset
 from seqeval.metrics import classification_report
 from seqeval.scheme import IOB2
 
+
 logger = logging.getLogger(__name__)
 
 class BERTNERModel():
