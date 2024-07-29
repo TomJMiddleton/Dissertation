@@ -1,16 +1,70 @@
 import torch
 import pandas as pd
 import spacy
-import logging
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 from datasets import load_dataset
 from seqeval.metrics import classification_report
-from seqeval.scheme import IOB2
+from seqeval.scheme import IOB2, IOB1
+import os
 
+def load_wikigold_from_file(file_path):
+    """
+    Load the Wikigold NER dataset from a text file.
+    ----------
+    Parameters:
+    file_path : str
+        Path to the Wikigold dataset text file.
+    ----------
+    Returns:
+    dataset : dict
+        A dictionary containing 'tokens' and 'ner_tags' for the dataset.
+    """
+    tokens = []
+    ner_tags = []
+    current_sentence = []
+    current_tags = []
 
-logger = logging.getLogger(__name__)
+    with open(file_path, 'r', encoding='utf-8') as file:
+        for line in file:
+            line = line.strip()
+            if line == '-DOCSTART- O':
+                if current_sentence:
+                    tokens.append(current_sentence)
+                    ner_tags.append(current_tags)
+                    current_sentence = []
+                    current_tags = []
+            elif line:
+                token, tag = line.split(' ')
+                current_sentence.append(token)
+                current_tags.append(tag)
+            else:
+                if current_sentence:
+                    tokens.append(current_sentence)
+                    ner_tags.append(current_tags)
+                    current_sentence = []
+                    current_tags = []
 
+    if current_sentence:
+        tokens.append(current_sentence)
+        ner_tags.append(current_tags)
+
+    return {'tokens': tokens, 'ner_tags': ner_tags}
+
+def iob2_to_iob1(tags):
+    """
+    Convert IOB2 tags to IOB1 format.
+    """
+    iob1_tags = []
+    for i, tag in enumerate(tags):
+        if tag.startswith('B-'):
+            if i == 0 or tags[i-1] == 'O' or tags[i-1][2:] != tag[2:]:
+                iob1_tags.append(tag.replace('B-', 'I-'))
+            else:
+                iob1_tags.append(tag)
+        else:
+            iob1_tags.append(tag)
+    return iob1_tags
 
 def AlignTokens(spacy_tokens, original_tokens):
     """
@@ -41,7 +95,7 @@ def AlignTokens(spacy_tokens, original_tokens):
             orig_idx += 1
     return alignment
 
-def GetSpacyPredictions(nlp, sentences, original_tokens):
+def GetSpacyPredictions(nlp, sentences, original_tokens, use_iob1 = False):
     """
     For a list of sentences:
         generate the predictions from the model
@@ -85,14 +139,17 @@ def GetSpacyPredictions(nlp, sentences, original_tokens):
                     for j in range(start_token, end_token):
                         if j < len(word_predictions):
                             if j == start_token:
-                                word_predictions[j] = f'B-{label_map[ent.label_]}'
+                                if use_iob1:
+                                    word_predictions[j] = f'I-{label_map[ent.label_]}'
+                                else:
+                                    word_predictions[j] = f'B-{label_map[ent.label_]}'
                             else:
                                 word_predictions[j] = f'I-{label_map[ent.label_]}'
         
         all_predictions.append(word_predictions)
     return all_predictions
 
-def GetHuggingFacePredictions(ner_pipeline, sentences):
+def GetHuggingFacePredictions(ner_pipeline, sentences, use_iob1 = False):
     """
     For a list of sentences:
         generate the predictions from the model
@@ -124,7 +181,10 @@ def GetHuggingFacePredictions(ner_pipeline, sentences):
             for i in range(start_word_index, end_word_index):
                 if i < len(word_predictions):
                     if i == start_word_index:
-                        word_predictions[i] = 'B-' + pred['entity_group']
+                        if use_iob1:
+                            word_predictions[i] = 'I-' + pred['entity_group']
+                        else:
+                            word_predictions[i] = 'B-' + pred['entity_group']
                     else:
                         word_predictions[i] = 'I-' + pred['entity_group']
         
@@ -134,17 +194,25 @@ def GetHuggingFacePredictions(ner_pipeline, sentences):
 
 
 
-def EvaluateNERModel(model_name, use_debug_prints = False):
+def EvaluateNERModel(
+        model_name,
+        dataset_name,
+        wikigold_file_path='./Datasets/Raw/WikiGold/wikigold.conll.txt',
+        use_debug_prints = False):
     """
-    Evaluate a Named Entity Recognition (NER) model on the CoNLL-2003 dataset.
+    Evaluate a Named Entity Recognition (NER) model on the specified dataset.
         -loads a pre-trained model
-        -processes the CoNLL-2003 test set
+        -processes the dataset set
         -makes predictions
         -evaluates the model's performance
     ----------
     Parameters:
     model_name : str
         The name or path of the pre-trained model to evaluate.
+    dataset_name : str
+        The name of the dataset to use ('conll2003' or 'wikigold').
+    wikigold_file_path : str, optional
+        Path to the Wikigold dataset text file (required if dataset_name is 'wikigold').
     use_debug_prints : bool (default = False)
         Print some sample outputs to validate the code works.
     ----------
@@ -152,9 +220,19 @@ def EvaluateNERModel(model_name, use_debug_prints = False):
     evaluation_message : str
         Precision, recall, and F1-score for each entity type.
     """
-    # Load the CoNLL-2003 dataset
-    dataset = load_dataset("conll2003", trust_remote_code=True)
-    test_dataset = dataset["test"]
+    # Load the specified dataset
+    if dataset_name == 'conll2003':
+        dataset = load_dataset("conll2003", trust_remote_code=True)
+        test_dataset = dataset["test"]
+        # Convert numeric labels to string labels
+        id2label = {i: label if label != "O" else "O" for i, label in enumerate(dataset["train"].features["ner_tags"].feature.names)}
+        true_labels = [[id2label[label] for label in sentence] for sentence in test_dataset["ner_tags"]]
+    elif dataset_name == 'wikigold':
+        assert os.path.exists(wikigold_file_path), f"WikiGold Dataset is missing: {wikigold_file_path}"
+        test_dataset = load_wikigold_from_file(wikigold_file_path)
+        true_labels = test_dataset["ner_tags"]
+    else:
+        raise ValueError("Invalid dataset name.")
 
     # Set up the device (GPU if available, else CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -170,16 +248,13 @@ def EvaluateNERModel(model_name, use_debug_prints = False):
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         ner_pipeline = pipeline("ner", device=device, model=model, tokenizer=tokenizer, aggregation_strategy="simple")
 
-    # Convert numeric labels to string labels
-    id2label = {i: label if label != "O" else "O" for i, label in enumerate(dataset["train"].features["ner_tags"].feature.names)}
-    true_labels = [[id2label[label] for label in sentence] for sentence in test_dataset["ner_tags"]]
-
     # Prepare sentences and get predictions
+    use_iob1 = (dataset_name == 'wikigold')
     test_sentences = [" ".join(tokens) for tokens in test_dataset["tokens"]]
     if model_name == 'en_core_web_sm':
-        pred_labels = GetSpacyPredictions(nlp, test_sentences, test_dataset["tokens"])
+        pred_labels = GetSpacyPredictions(nlp, test_sentences, test_dataset["tokens"], use_iob1 = use_iob1)
     else:
-        pred_labels = GetHuggingFacePredictions(ner_pipeline, test_sentences)
+        pred_labels = GetHuggingFacePredictions(ner_pipeline, test_sentences, use_iob1 = use_iob1)
 
 
     if use_debug_prints: # Debugging Help
@@ -200,12 +275,27 @@ def EvaluateNERModel(model_name, use_debug_prints = False):
             print(f"Mismatched lengths found in {len(mismatched)} samples. First 5 mismatched indices: {mismatched[:5]}")
 
     # Evaluate and return the classification report
-    return classification_report(true_labels, pred_labels, mode='strict', scheme=IOB2)
+    scheme = IOB1 if use_iob1 else IOB2
+    return classification_report(true_labels, pred_labels, mode='strict', scheme=scheme)
 
 if __name__ == "__main__":
     model_names = ['en_core_web_sm', 'dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner', '51la5/roberta-large-NER', 'Jean-Baptiste/roberta-large-ner-english']
+    dataset_names = ['conll2003', 'wikigold']
+    eval_results = []
     for model_name in model_names:
-        print(f"Evaluating model: {model_name}")
-        evaluation_message = EvaluateNERModel(model_name)
-        print(evaluation_message)
-        
+        for dataset_name in dataset_names:
+            #dataset_name = dataset_names[1]
+            #model_name = model_names[-1]
+            print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
+            evaluation_message = EvaluateNERModel(model_name, dataset_name)
+            #print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
+            eval_results.append(evaluation_message)
+            #print(evaluation_message)
+            #break
+    
+    i = 0
+    for model_name in model_names:
+        for dataset_name in dataset_names:
+            print(f" \n Evaluation Results: {model_name} on dataset: {dataset_name}")
+            print(eval_results[i])
+            i += 1
