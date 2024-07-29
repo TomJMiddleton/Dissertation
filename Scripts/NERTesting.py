@@ -315,7 +315,7 @@ def EvaluateNERModel(model_name, use_debug_prints = False):
     return classification_report(true_labels, pred_labels, mode='strict', scheme=IOB2)
 
 if __name__ == "__main__":
-    model_names = ['en_core_web_sm', 'dslim/bert-base-NER']
+    model_names = ['en_core_web_sm', 'dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner']
     for model_name in model_names:
         print(f"Evaluating model: {model_name}")
         evaluation_message = EvaluateNERModel(model_name)
