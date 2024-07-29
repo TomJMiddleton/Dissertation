@@ -228,6 +228,7 @@ def EvaluateNERModel(
         id2label = {i: label if label != "O" else "O" for i, label in enumerate(dataset["train"].features["ner_tags"].feature.names)}
         true_labels = [[id2label[label] for label in sentence] for sentence in test_dataset["ner_tags"]]
     elif dataset_name == 'wikigold':
+        #https://github.com/juand-r/entity-recognition-datasets/blob/master/data/wikigold/CONLL-format/docs/entity-list.txt
         assert os.path.exists(wikigold_file_path), f"WikiGold Dataset is missing: {wikigold_file_path}"
         test_dataset = load_wikigold_from_file(wikigold_file_path)
         true_labels = test_dataset["ner_tags"]
