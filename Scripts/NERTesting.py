@@ -93,7 +93,7 @@ class EvalIO:
 
         norm_table['Normalized_F1'] = (norm_table['F1-Score'] - norm_table['F1-Score'].min()) / (norm_table['F1-Score'].max() - norm_table['F1-Score'].min())
         norm_table['Normalized_Time'] = 1 - (norm_table['Inference Time'] - norm_table['Inference Time'].min()) / (norm_table['Inference Time'].max() - norm_table['Inference Time'].min())
-        norm_table['Performance_Score'] = (norm_table['Normalized_F1']*3 + norm_table['Normalized_Time']*2) / 5
+        norm_table['Performance_Score'] = (norm_table['Normalized_F1'] + norm_table['Normalized_Time']) /2
         
         norm_table = norm_table[['Model', 'Dataset', 'F1-Score', 'Inference Time', 'Performance_Score']]
         return norm_table.sort_values('Performance_Score', ascending=False)
@@ -431,7 +431,7 @@ if __name__ == "__main__":
     evaluator = EvalIO()
     eval_save_path = './Datasets/Processed/evaluation_results.json'
 
-    if True:
+    if False:
         for model_name in model_names:
             for dataset_name in dataset_names:
                 print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
@@ -440,6 +440,6 @@ if __name__ == "__main__":
         evaluator.ExportResults(eval_save_path)
     
     evaluator.ImportResults(eval_save_path)
-    #print(evaluator)
+    print(evaluator)
     #evaluator.PlotEvaluationData()
     print(evaluator.NormalisedPerformanceScores())
