@@ -426,12 +426,12 @@ def EvaluateNERModel(
     return classification_report(true_labels, pred_labels, mode='strict', scheme=scheme), execution_time
 
 if __name__ == "__main__":
-    model_names = ['dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner', '51la5/roberta-large-NER', 'Jean-Baptiste/roberta-large-ner-english']#'en_core_web_sm', 
+    model_names = ['en_core_web_sm', 'dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner', '51la5/roberta-large-NER', 'Jean-Baptiste/roberta-large-ner-english'] 
     dataset_names = ['conll2003', 'wikigold']
     evaluator = EvalIO()
     eval_save_path = './Datasets/Processed/evaluation_results.json'
 
-    if False:
+    if True:
         for model_name in model_names:
             for dataset_name in dataset_names:
                 print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
@@ -441,5 +441,5 @@ if __name__ == "__main__":
     
     evaluator.ImportResults(eval_save_path)
     print(evaluator)
-    #evaluator.PlotEvaluationData()
+    evaluator.PlotEvaluationData()
     print(evaluator.NormalisedPerformanceScores())
