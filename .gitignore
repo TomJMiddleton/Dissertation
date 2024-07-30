@@ -13,6 +13,7 @@ __pycache__/
 # Data files
 Datasets/Raw/
 Datasets/Processed/
+Datasets/Database/
 
 # Research Parts
 Misc/
