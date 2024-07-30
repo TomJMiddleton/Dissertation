@@ -11,7 +11,8 @@ def InstatiateDB(file_path):
         with closing(conn.cursor()) as cur:
             # Document table
             cur.execute('''CREATE TABLE IF NOT EXISTS Document
-                        (DocID TEXT PRIMARY KEY)''')
+                       (DocID INTEGER PRIMARY KEY AUTOINCREMENT,
+                        document TEXT)''')
 
             # Sentence table
             cur.execute('''CREATE TABLE IF NOT EXISTS Sentence
