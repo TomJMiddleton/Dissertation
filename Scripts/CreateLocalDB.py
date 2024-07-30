@@ -4,7 +4,9 @@ import os
 
 # Create the database
 def InstatiateDB(file_path):
-    assert os.path.exists(file_path) == False, f" Database already exists at {file_path}"
+    if os.path.exists(file_path):
+        print(f" Database already exists at {file_path}")
+        return False
     with closing(sqlite3.connect(file_path)) as conn:
         with closing(conn.cursor()) as cur:
             # Document table
@@ -33,8 +35,9 @@ def InstatiateDB(file_path):
                             PRIMARY KEY (DocID1, DocID2),
                             FOREIGN KEY (DocID1) REFERENCES Document(DocID),
                             FOREIGN KEY (DocID2) REFERENCES Document(DocID))''')
+    return True
 
 if __name__ == "__main__":
     file_path = './Datasets/Database/MasterDB.db'
-    InstatiateDB(file_path)
-    print("Database created successfully.")
+    if InstatiateDB(file_path):
+        print("Database created successfully.")
