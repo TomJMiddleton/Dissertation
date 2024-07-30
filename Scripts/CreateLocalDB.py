@@ -9,15 +9,15 @@ def InstatiateDB(file_path):
         return False
     with closing(sqlite3.connect(file_path)) as conn:
         with closing(conn.cursor()) as cur:
-            # Document table
+            # Document table 
             cur.execute('''CREATE TABLE IF NOT EXISTS Document
-                       (DocID INTEGER PRIMARY KEY AUTOINCREMENT,
-                        document TEXT)''')
+                        (DocID INTEGER PRIMARY KEY AUTOINCREMENT,
+                            DocText TEXT)''')
 
-            # Sentence table
+            # Sentence table 
             cur.execute('''CREATE TABLE IF NOT EXISTS Sentence
                         (SentID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            DocID TEXT,
+                            DocID INTEGER,
                             sent TEXT,
                             FOREIGN KEY (DocID) REFERENCES Document(DocID))''')
 
@@ -28,10 +28,10 @@ def InstatiateDB(file_path):
                             keyword TEXT,
                             FOREIGN KEY (SentID) REFERENCES Sentence(SentID))''')
 
-            # Similarity table
+            # Similarity table 
             cur.execute('''CREATE TABLE IF NOT EXISTS Similarity
-                        (DocID1 TEXT,
-                            DocID2 TEXT,
+                        (DocID1 INTEGER,
+                            DocID2 INTEGER,
                             similarity REAL,
                             PRIMARY KEY (DocID1, DocID2),
                             FOREIGN KEY (DocID1) REFERENCES Document(DocID),
