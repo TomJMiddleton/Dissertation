@@ -7,8 +7,151 @@ from datasets import load_dataset
 from seqeval.metrics import classification_report
 from seqeval.scheme import IOB2, IOB1
 import os
+import time
+import re
+import json
+import matplotlib.pyplot as plt
+import seaborn as sns
 
-def load_wikigold_from_file(file_path):
+class EvalIO:
+    def __init__(self):
+        self.results = {}
+        self.summary_table = pd.DataFrame()
+    
+    def __str__(self):
+        if len(self.summary_table.index) == 0:
+            self.CreateSummaryTable()
+        return self.summary_table.to_string()
+
+    def AddEvaluationData(self, model_name, test_set, report, inference_time):
+        if model_name not in self.results:
+            self.results[model_name] = {}
+        
+        parsed_report = self.ParseEvaluationReport(report)
+        df = pd.DataFrame.from_dict(parsed_report, orient='index')
+        
+        self.results[model_name][test_set] = {
+            'metrics': df,
+            'inference_time': inference_time
+        }
+
+    def ParseEvaluationReport(self, report):
+        lines = report.split('\n')
+        data = {}
+        
+        for line in lines[2:-3]:  # Skip header and footer
+            line = line.strip()
+            if line:
+                matches = re.match(r'(\w+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+)', line)
+                if matches:
+                    label, precision, recall, f1, support = matches.groups()
+                    data[label] = {
+                        'precision': float(precision),
+                        'recall': float(recall),
+                        'f1-score': float(f1),
+                        'support': int(support)
+                    }
+        # Parse average scores
+        for line in lines[-3:]:
+            line = line.strip()
+            if line:
+                matches = re.match(r'(\w+\s+\w+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+\.\d+)\s+(\d+)', line)
+                if matches:
+                    label, precision, recall, f1, support = matches.groups()
+                    data[label] = {
+                        'precision': float(precision),
+                        'recall': float(recall),
+                        'f1-score': float(f1),
+                        'support': int(support)
+                    }
+        
+        return data
+
+    def CreateSummaryTable(self):
+        assert len(self.results) > 0, "No results stored in EvalIO"
+        rows = []
+        for model in self.results:
+            for dataset in self.results[model]:
+                metrics = self.results[model][dataset]['metrics']
+                inference_time = self.results[model][dataset]['inference_time']
+                
+                row = {
+                    'Model': model,
+                    'Dataset': dataset,
+                    'Precision': metrics.loc['weighted avg', 'precision'],
+                    'Recall': metrics.loc['weighted avg', 'recall'],
+                    'F1-Score': metrics.loc['weighted avg', 'f1-score'],
+                    'Inference Time': inference_time
+                }
+                rows.append(row)
+        self.summary_table = pd.DataFrame(rows)
+
+    def NormalisedPerformanceScores(self):
+        if len(self.summary_table.index) == 0:
+            self.CreateSummaryTable()
+        norm_table = self.summary_table
+
+        norm_table['Normalized_F1'] = (norm_table['F1-Score'] - norm_table['F1-Score'].min()) / (norm_table['F1-Score'].max() - norm_table['F1-Score'].min())
+        norm_table['Normalized_Time'] = 1 - (norm_table['Inference Time'] - norm_table['Inference Time'].min()) / (norm_table['Inference Time'].max() - norm_table['Inference Time'].min())
+        norm_table['Performance_Score'] = (norm_table['Normalized_F1']*3 + norm_table['Normalized_Time']*2) / 5
+        
+        norm_table = norm_table[['Model', 'Dataset', 'F1-Score', 'Inference Time', 'Performance_Score']]
+        return norm_table.sort_values('Performance_Score', ascending=False)
+
+    def PlotEvaluationData(self):
+        if len(self.summary_table.index) == 0:
+            self.CreateSummaryTable()
+
+        # Bar plot for F1-Scores
+        plt.figure(figsize=(12, 6))
+        sns.barplot(x='Model', y='F1-Score', hue='Dataset', data=self.summary_table)
+        plt.title('Model Comparison - F1-Scores')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
+        # Scatter plot for F1-Score vs Inference Time
+        plt.figure(figsize=(10, 6))
+        for dataset in self.summary_table['Dataset'].unique():
+            data = self.summary_table[self.summary_table['Dataset'] == dataset]
+            plt.scatter(data['Inference Time'], data['F1-Score'], label=dataset)
+            for i, model in enumerate(data['Model']):
+                plt.annotate(model, (data['Inference Time'].iloc[i], data['F1-Score'].iloc[i]))
+        plt.xlabel('Inference Time')
+        plt.ylabel('F1-Score')
+        plt.title('F1-Score vs Inference Time')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
+
+    def ExportResults(self, filename):
+        serializable_results = {}
+        for model, test_sets in self.results.items():
+            serializable_results[model] = {}
+            for test_set, data in test_sets.items():
+                serializable_results[model][test_set] = {
+                    'metrics': data['metrics'].to_dict(orient='index'),
+                    'inference_time': data['inference_time']
+                }
+        
+        with open(filename, 'w') as f:
+            json.dump(serializable_results, f, indent=2)
+
+    def ImportResults(self, filename):
+        with open(filename, 'r') as f:
+            data = json.load(f)
+        
+        self.results = {}  # Clear existing results
+        for model, test_sets in data.items():
+            for test_set, results in test_sets.items():
+                df = pd.DataFrame.from_dict(results['metrics'], orient='index')
+                self.results[model] = self.results.get(model, {})
+                self.results[model][test_set] = {
+                    'metrics': df,
+                    'inference_time': results['inference_time']
+                }
+
+def ImportWikigoldDataset(file_path):
     """
     Load the Wikigold NER dataset from a text file.
     ----------
@@ -51,7 +194,7 @@ def load_wikigold_from_file(file_path):
 
     return {'tokens': tokens, 'ner_tags': ner_tags}
 
-def iob2_to_iob1(tags):
+def IOB2toIOB1(tags):
     """
     Convert IOB2 tags to IOB1 format.
     """
@@ -230,7 +373,7 @@ def EvaluateNERModel(
     elif dataset_name == 'wikigold':
         #https://github.com/juand-r/entity-recognition-datasets/blob/master/data/wikigold/CONLL-format/docs/entity-list.txt
         assert os.path.exists(wikigold_file_path), f"WikiGold Dataset is missing: {wikigold_file_path}"
-        test_dataset = load_wikigold_from_file(wikigold_file_path)
+        test_dataset = ImportWikigoldDataset(wikigold_file_path)
         true_labels = test_dataset["ner_tags"]
     else:
         raise ValueError("Invalid dataset name.")
@@ -252,11 +395,14 @@ def EvaluateNERModel(
     # Prepare sentences and get predictions
     use_iob1 = (dataset_name == 'wikigold')
     test_sentences = [" ".join(tokens) for tokens in test_dataset["tokens"]]
+
+    start_time = time.time()
     if model_name == 'en_core_web_sm':
         pred_labels = GetSpacyPredictions(nlp, test_sentences, test_dataset["tokens"], use_iob1 = use_iob1)
     else:
         pred_labels = GetHuggingFacePredictions(ner_pipeline, test_sentences, use_iob1 = use_iob1)
-
+    end_time = time.time()
+    execution_time = end_time - start_time
 
     if use_debug_prints: # Debugging Help
         print(f"Number of true label sequences: {len(true_labels)}")
@@ -277,26 +423,23 @@ def EvaluateNERModel(
 
     # Evaluate and return the classification report
     scheme = IOB1 if use_iob1 else IOB2
-    return classification_report(true_labels, pred_labels, mode='strict', scheme=scheme)
+    return classification_report(true_labels, pred_labels, mode='strict', scheme=scheme), execution_time
 
 if __name__ == "__main__":
-    model_names = ['en_core_web_sm', 'dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner', '51la5/roberta-large-NER', 'Jean-Baptiste/roberta-large-ner-english']
+    model_names = ['dslim/bert-base-NER', 'dslim/bert-large-NER', 'huggingface-course/bert-finetuned-ner', '51la5/roberta-large-NER', 'Jean-Baptiste/roberta-large-ner-english']#'en_core_web_sm', 
     dataset_names = ['conll2003', 'wikigold']
-    eval_results = []
-    for model_name in model_names:
-        for dataset_name in dataset_names:
-            #dataset_name = dataset_names[1]
-            #model_name = model_names[-1]
-            print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
-            evaluation_message = EvaluateNERModel(model_name, dataset_name)
-            #print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
-            eval_results.append(evaluation_message)
-            #print(evaluation_message)
-            #break
+    evaluator = EvalIO()
+    eval_save_path = './Datasets/Processed/evaluation_results.json'
+
+    if True:
+        for model_name in model_names:
+            for dataset_name in dataset_names:
+                print(f" \n Evaluating model: {model_name} on dataset: {dataset_name} \n")
+                evaluation_message, execution_time = EvaluateNERModel(model_name, dataset_name)
+                evaluator.AddEvaluationData(model_name, dataset_name, evaluation_message, execution_time)
+        evaluator.ExportResults(eval_save_path)
     
-    i = 0
-    for model_name in model_names:
-        for dataset_name in dataset_names:
-            print(f" \n Evaluation Results: {model_name} on dataset: {dataset_name}")
-            print(eval_results[i])
-            i += 1
+    evaluator.ImportResults(eval_save_path)
+    #print(evaluator)
+    #evaluator.PlotEvaluationData()
+    print(evaluator.NormalisedPerformanceScores())
