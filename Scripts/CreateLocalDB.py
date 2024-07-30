@@ -39,6 +39,6 @@ def InstatiateDB(file_path):
     return True
 
 if __name__ == "__main__":
-    file_path = './Datasets/Database/MasterDB.db'
+    file_path = './Datasets/Database/testingDB.db'
     if InstatiateDB(file_path):
         print("Database created successfully.")
