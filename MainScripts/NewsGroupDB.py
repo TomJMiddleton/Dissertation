@@ -5,7 +5,7 @@ import nltk
 
 from nltk.tokenize import sent_tokenize
 from CreateLocalDB import InstatiateDB
-from NewsGroupPreprocessing import ExtractDocumentIndex, ExtractDocumentText
+from NewsGroupPreprocessing import ExtractDocumentIndex, ExtractDocumentText, CleanNewsGroupBasics
 
 document_re = re.compile(r'^Newsgroup:.*?(?=^Newsgroup:|\Z)', re.DOTALL | re.MULTILINE)
 NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB.db'
@@ -25,8 +25,13 @@ def NewsGroupDocumentExtraction():
                 newsgroup, document_id = ExtractDocumentIndex(doc)
                 if newsgroup and document_id:
                     doc_text = ExtractDocumentText(doc)
+                    #with open('doc_txt.txt', 'w', encoding='utf-8') as f:
+                    #    f.write(doc_text)
+                    doc_text_clean = CleanNewsGroupBasics(doc_text)
+                    #with open('doc_text_clean.txt', 'w', encoding='utf-8') as f:
+                    #    f.write(doc_text_clean)
                     doc_title = newsgroup + document_id
-                    newsgroup_docs.append([doc_title, doc_text])
+                    newsgroup_docs.append([doc_title, doc_text_clean])
 
     newsgroup_doc_df = pd.DataFrame(newsgroup_docs, columns=['title', 'document'])
     return newsgroup_doc_df
@@ -38,7 +43,7 @@ def NewsGroupSentenceExtraction(newsgroup_doc_df):
     sentences_df['DocID'] += 1
     sentences_df = sentences_df.explode('sent')
     sentences_df = sentences_df[['DocID', 'sent']]
-    print(sentences_df.head(200))
+    #print(sentences_df.head(200))
     return sentences_df
 
 
@@ -55,11 +60,12 @@ if __name__ == "__main__":
 
     # Populate the Document table in the database
     newsgroup_doc_df = NewsGroupDocumentExtraction()
-    #WriteDataframeToDatabase(newsgroup_doc_df, "Document", NEWSGROUPDBFILEPATH)
+    #print(newsgroup_doc_df.head(10))
+    WriteDataframeToDatabase(newsgroup_doc_df, "Document", NEWSGROUPDBFILEPATH)
 
     # Populate the Sentence table in the database
     sentences_df = NewsGroupSentenceExtraction(newsgroup_doc_df)
-    #WriteDataframeToDatabase(sentences_df, "Sentence", NEWSGROUPDBFILEPATH)
+    WriteDataframeToDatabase(sentences_df, "Sentence", NEWSGROUPDBFILEPATH)
 
     print(f"\nTotal number of sentences: {len(sentences_df)}")
     print(f"Number of unique documents: {sentences_df['DocID'].nunique()}")

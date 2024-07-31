@@ -25,8 +25,8 @@ def ExtractDocumentIndex(document):
 def ExtractDocumentText(document):
     lines = document.split('\n')
     main_text_lines = lines[4:]
-    text = ' '.join(main_text_lines).strip()
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = '\n'.join(main_text_lines).strip()
+    #text = re.sub(r'\s+', ' ', text).strip()
     return text
 
 def GenerateNewsIndexes(news_filenames):
@@ -64,10 +64,68 @@ def RemoveNewsFormatting(news_filenames):
                     newsgroup_text.append(ExtractDocumentText(doc))
     return newsgroup_text
 
+def CleanNewsGroupBasics(text):
+    # Remove XML tags
+    text = re.sub(r'<[^>]+>', '', text)
+
+    # Split into lines
+    lines = text.split('\n')
+    cleaned_lines = []
+    current_paragraph = []
+
+    # Metadata patterns to remove
+    metadata_patterns = [
+        r'^Archive-name:',
+        r'^Alt-atheism-archive-name:',
+        r'^Last-modified:',
+        r'^Version:'
+    ]
+
+    for line in lines:
+        line = line.strip()
+        
+        # Skip metadata lines
+        if any(re.match(pattern, line) for pattern in metadata_patterns):
+            continue
+
+        if line:
+            if line.isupper() and len(line) > 3:  # Likely a header
+                if current_paragraph:
+                    cleaned_lines.append(' '.join(current_paragraph))
+                    cleaned_lines.append('')  # Add a blank line after paragraph
+                    current_paragraph = []
+                cleaned_lines.append(line)  # Keep header as is
+            else:
+                current_paragraph.append(line)
+        elif current_paragraph:
+            cleaned_lines.append(' '.join(current_paragraph))
+            cleaned_lines.append('')  # Add a blank line after paragraph
+            current_paragraph = []
+        else:
+            # If we encounter an empty line and we're not in a paragraph, just add it
+            cleaned_lines.append('')
+    
+    if current_paragraph:
+        cleaned_lines.append(' '.join(current_paragraph))
+
+    # Join lines
+    cleaned_text = '\n'.join(cleaned_lines)
+
+    # Remove multiple consecutive blank lines
+    cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text)
+
+    # Remove special characters (non-ASCII)
+    cleaned_text = re.sub(r'[^\x00-\x7F]+', '', cleaned_text)
+
+    # Remove some irregular <, >, | characters
+    cleaned_text = re.sub(r'[|<>]', '', cleaned_text)
+
+    return cleaned_text.strip()
+
 def TestNewsCleaning():
     db_filenames = GetNewsFileNames()
     unformatted_text = RemoveNewsFormatting(db_filenames)
-    print(len(unformatted_text))
-    print(unformatted_text[1010])
+    #print(len(unformatted_text))
+    #print(unformatted_text[7])
 
 TestNewsCleaning()
