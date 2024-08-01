@@ -43,6 +43,15 @@ def NewsGroupSentenceExtraction(newsgroup_doc_df):
     sentences_df['DocID'] += 1
     sentences_df = sentences_df.explode('sent')
     sentences_df = sentences_df[['DocID', 'sent']]
+    
+    # Remove sentences with values: None, whitespace, only punctuation
+    def CheckNullSentences(text):
+        stripped_text = str(text).strip()
+        return bool(re.match(r'^[\W\s]*$', stripped_text))
+    
+    sentences_df = sentences_df.dropna(subset=['sent'])
+    sentences_df = sentences_df[~sentences_df['sent'].apply(CheckNullSentences)]
+    sentences_df = sentences_df.reset_index(drop=True)
     #print(sentences_df.head(200))
     return sentences_df
 
