@@ -15,6 +15,34 @@ def ReviewSentenceTableInTxtFile(db_path, output_file, n):
 
 
 # NG sentence processing visual check
+"""
 ReviewSentenceTableInTxtFile(db_path='./Datasets/Database/NewsGroupDB.db',
                              output_file = 'db_export_sentences.txt',
                              n = 3000)
+"""
+
+def CheckSentValue(db_path, sent_id):
+    with closing(sqlite3.connect(db_path)) as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute("SELECT sent FROM Sentence WHERE SentID = ?", (sent_id,))
+            result = cur.fetchone()
+            if result:
+                print(f"Sentence with SentID {sent_id}:")
+                print(result[0])
+            else:
+                print(f"No sentence found with SentID {sent_id}")
+
+#CheckSentValue(db_path='./Datasets/Database/NewsGroupDB.db', sent_id = 14343)
+
+def CheckDocValue(db_path, doc_id):
+    with closing(sqlite3.connect(db_path)) as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute("SELECT document FROM Document WHERE DocID = ?", (doc_id,))
+            result = cur.fetchone()
+            if result:
+                print(f"Sentence with DocID {doc_id}:")
+                print(result[0])
+            else:
+                print(f"No sentence found with DocID {doc_id}")
+
+#CheckDocValue(db_path='./Datasets/Database/NewsGroupDB.db', doc_id = 14343)
