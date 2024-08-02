@@ -6,6 +6,7 @@ import re
 import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
+import time, sys
 
 class SQLiteDataset(Dataset):
     def __init__(self, db_path):
@@ -90,6 +91,7 @@ class SQLiteDatabase:
 
 def EntityNormalisation(entity):
     # Lowercase, remove punctuation
+    entity = entity.replace('-', ' ')
     entity = re.sub(r'[^\w\s]', '', entity.lower())
     
     # Lemmatize words
@@ -101,7 +103,7 @@ def EntityNormalisation(entity):
     root_entity = ' '.join(ents)
     return root_entity
 
-def process_database(db_path, model_name, batch_size=32):
+def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     # Needed for stopwords and lemmatizer
     nltk.download('wordnet')
     nltk.download('stopwords')
@@ -112,11 +114,19 @@ def process_database(db_path, model_name, batch_size=32):
 
     # Create DataLoader
     dataset = SQLiteDataset(db_path)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=2)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers)
 
     # Initialize SQLiteDatabase for writing
     db = SQLiteDatabase(db_path)
     db.connect()
+
+    # Logging bits
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    log_file = open("./Datasets/Database/NERParsesPerf.txt", "w")
+    sys.stdout = log_file
+    sys.stderr = log_file
+    start_time = time.time()
 
     # Process batches
     for batch in dataloader:
@@ -143,6 +153,14 @@ def process_database(db_path, model_name, batch_size=32):
     db.disconnect()
 
     print("NER processing complete. Results written to the database.")
+    end_time = time.time()
+    execution_time = end_time - start_time
+    print(f" Execution Time for NER Processing and writing: {execution_time} ")
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
+    log_file.close()
+    print("NER processing complete. Results written to the database.")
+    print("Log bits written to text file in database folder")
 
 # Usage
 if __name__ == "__main__":
