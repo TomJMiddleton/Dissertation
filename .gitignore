@@ -15,5 +15,8 @@ Datasets/Raw/
 Datasets/Processed/
 Datasets/Database/
 
+# Test Files
+MainTests/DBTestScreenshots
+
 # Research Parts
 Misc/

@@ -8,7 +8,7 @@ from CreateLocalDB import InstatiateDB
 from NewsGroupPreprocessing import ExtractDocumentIndex, ExtractDocumentText, CleanNewsGroupBasics
 
 document_re = re.compile(r'^Newsgroup:.*?(?=^Newsgroup:|\Z)', re.DOTALL | re.MULTILINE)
-NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB.db'
+NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB2.db'
 
 def NewsGroupDocumentExtraction():
     dir_names = os.listdir("./Datasets/Raw/20NG/")
@@ -33,24 +33,24 @@ def NewsGroupDocumentExtraction():
                     doc_title = newsgroup + document_id
                     newsgroup_docs.append([doc_title, doc_text_clean])
 
-    newsgroup_doc_df = pd.DataFrame(newsgroup_docs, columns=['title', 'document'])
+    newsgroup_doc_df = pd.DataFrame(newsgroup_docs, columns=['Title', 'CleanedDocument'])
     return newsgroup_doc_df
 
 
 def NewsGroupSentenceExtraction(newsgroup_doc_df):
-    newsgroup_doc_df['sent'] = newsgroup_doc_df['document'].apply(sent_tokenize)
+    newsgroup_doc_df['SentenceText'] = newsgroup_doc_df['CleanedDocument'].apply(sent_tokenize)
     sentences_df = newsgroup_doc_df.reset_index().rename(columns={'index': 'DocID'})
     sentences_df['DocID'] += 1
-    sentences_df = sentences_df.explode('sent')
-    sentences_df = sentences_df[['DocID', 'sent']]
+    sentences_df = sentences_df.explode('SentenceText')
+    sentences_df = sentences_df[['DocID', 'SentenceText']]
     
     # Remove sentences with values: None, whitespace, only punctuation
     def CheckNullSentences(text):
         stripped_text = str(text).strip()
         return bool(re.match(r'^[\W\s]*$', stripped_text))
     
-    sentences_df = sentences_df.dropna(subset=['sent'])
-    sentences_df = sentences_df[~sentences_df['sent'].apply(CheckNullSentences)]
+    sentences_df = sentences_df.dropna(subset=['SentenceText'])
+    sentences_df = sentences_df[~sentences_df['SentenceText'].apply(CheckNullSentences)]
     sentences_df = sentences_df.reset_index(drop=True)
     #print(sentences_df.head(200))
     return sentences_df
@@ -70,11 +70,11 @@ if __name__ == "__main__":
     # Populate the Document table in the database
     newsgroup_doc_df = NewsGroupDocumentExtraction()
     #print(newsgroup_doc_df.head(10))
-    WriteDataframeToDatabase(newsgroup_doc_df, "Document", NEWSGROUPDBFILEPATH)
+    WriteDataframeToDatabase(newsgroup_doc_df, "Documents", NEWSGROUPDBFILEPATH)
 
     # Populate the Sentence table in the database
     sentences_df = NewsGroupSentenceExtraction(newsgroup_doc_df)
-    WriteDataframeToDatabase(sentences_df, "Sentence", NEWSGROUPDBFILEPATH)
+    WriteDataframeToDatabase(sentences_df, "Sentences", NEWSGROUPDBFILEPATH)
 
     print(f"\nTotal number of sentences: {len(sentences_df)}")
     print(f"Number of unique documents: {sentences_df['DocID'].nunique()}")

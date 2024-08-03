@@ -9,34 +9,71 @@ def InstatiateDB(file_path):
         return False
     with closing(sqlite3.connect(file_path)) as conn:
         with closing(conn.cursor()) as cur:
-            # Document table 
-            cur.execute('''CREATE TABLE IF NOT EXISTS Document
-                        (DocID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            title TEXT,
-                            document TEXT)''')
+            
+            # Create Documents table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS Documents (
+                DocID INTEGER PRIMARY KEY,
+                Title TEXT NOT NULL,
+                CleanedDocument TEXT
+            )
+            ''')
 
-            # Sentence table 
-            cur.execute('''CREATE TABLE IF NOT EXISTS Sentence
-                        (SentID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            DocID INTEGER,
-                            sent TEXT,
-                            FOREIGN KEY (DocID) REFERENCES Document(DocID))''')
+            # Create Keywords table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS Keywords (
+                KeywordID INTEGER PRIMARY KEY,
+                NormalizedKeyword TEXT NOT NULL UNIQUE
+            )
+            ''')
 
-            # Keyword table
-            cur.execute('''CREATE TABLE IF NOT EXISTS Keyword
-                        (KeywordID INTEGER PRIMARY KEY AUTOINCREMENT,
-                            SentID INTEGER,
-                            keyword TEXT,
-                            FOREIGN KEY (SentID) REFERENCES Sentence(SentID))''')
+            # Create KeywordVariations table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS KeywordVariations (
+                VariationID INTEGER PRIMARY KEY,
+                KeywordID INTEGER,
+                OriginalKeyword TEXT NOT NULL,
+                FOREIGN KEY (KeywordID) REFERENCES Keywords(KeywordID)
+            )
+            ''')
 
-            # Similarity table 
-            cur.execute('''CREATE TABLE IF NOT EXISTS Similarity
-                        (DocID1 INTEGER,
-                            DocID2 INTEGER,
-                            similarity REAL,
-                            PRIMARY KEY (DocID1, DocID2),
-                            FOREIGN KEY (DocID1) REFERENCES Document(DocID),
-                            FOREIGN KEY (DocID2) REFERENCES Document(DocID))''')
+            # Create DocumentKeywords table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS DocumentKeywords (
+                DocID INTEGER,
+                KeywordID INTEGER,
+                PRIMARY KEY (DocID, KeywordID),
+                FOREIGN KEY (DocID) REFERENCES Documents(DocID),
+                FOREIGN KEY (KeywordID) REFERENCES Keywords(KeywordID)
+            )
+            ''')
+
+            # Create Sentences table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS Sentences (
+                SentenceID INTEGER PRIMARY KEY,
+                DocID INTEGER,
+                SentenceText TEXT NOT NULL,
+                FOREIGN KEY (DocID) REFERENCES Documents(DocID)
+            )
+            ''')
+
+            # Create DocumentSimilarities table
+            cur.execute('''
+            CREATE TABLE IF NOT EXISTS DocumentSimilarities (
+                DocID1 INTEGER,
+                DocID2 INTEGER,
+                SimilarityScore REAL NOT NULL,
+                PRIMARY KEY (DocID1, DocID2),
+                FOREIGN KEY (DocID1) REFERENCES Documents(DocID),
+                FOREIGN KEY (DocID2) REFERENCES Documents(DocID)
+            )
+            ''')
+
+            # Create indexes for improved query performance
+            cur.execute('CREATE INDEX IF NOT EXISTS idx_normalized_keyword ON Keywords(NormalizedKeyword)')
+            cur.execute('CREATE INDEX IF NOT EXISTS idx_original_keyword ON KeywordVariations(OriginalKeyword)')
+
     return True
 
 if __name__ == "__main__":
