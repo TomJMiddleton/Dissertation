@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, csv
 from contextlib import closing
 
 
@@ -73,4 +73,24 @@ def GetTableCount(db_path, table_name):
             row_count = cur.fetchone()[0]
             print(row_count)
 
-GetTableCount(db_path='./Datasets/Database/NewsGroupDB.db', table_name = 'Keyword')
+#GetTableCount(db_path='./Datasets/Database/NewsGroupDB.db', table_name = 'Keyword')
+
+
+def TableToCSV(db_path, table_name, fields):
+    with closing(sqlite3.connect(db_path)) as conn:
+        with closing(conn.cursor()) as cur:
+            cur.execute(f"SELECT {', '.join(fields)} FROM {table_name}")
+            rows = cur.fetchall()
+            
+            with open(f'./Datasets/Database/{table_name}.csv', 'w', newline='') as csvfile:
+                csvwriter = csv.writer(csvfile)
+                csvwriter.writerow(fields) 
+                csvwriter.writerows(rows)  
+
+
+TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Keywords', ['KeywordID', 'NormalizedKeyword'])
+TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'KeywordVariations', ['VariationID', 'KeywordID', 'OriginalKeyword'])
+TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'DocumentKeywords', ['DocID', 'KeywordID'])
+TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Documents', ['DocID', 'Title', 'CleanedDocument'])
+TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Sentences', ['SentenceID', 'DocID', 'SentenceText'])
+#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'DocumentKeywords', ['DocID1', 'DocID2', 'SimilarityScore'])
