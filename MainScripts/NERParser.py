@@ -7,6 +7,9 @@ import nltk
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import time, sys
+from transformers import AutoTokenizer
+import torch
+import warnings
 
 class SQLiteDataset(Dataset):
     def __init__(self, db_path):
@@ -27,7 +30,7 @@ class SQLiteDataset(Dataset):
 
     def __getitem__(self, idx):
         self._ensure_connection()
-        self.cur.execute("SELECT DocID, SentenceText FROM Sentences LIMIT 1 OFFSET ?", (idx,))
+        self.cur.execute("SELECT DocID, CleanedDocument FROM Documents WHERE DocID = ?", (idx + 1,))
         row = self.cur.fetchone()
         return row[0], row[1] 
 
@@ -103,6 +106,16 @@ def EntityNormalisation(entity):
     root_entity = ' '.join(ents)
     return root_entity
 
+def split_text(text, tokenizer, max_length=500, overlap=50):
+    tokens = tokenizer.encode(text, add_special_tokens=False)
+    
+    chunks = []
+    for i in range(0, len(tokens), max_length - overlap):
+        chunk = tokens[i:i + max_length]
+        chunks.append(tokenizer.decode(chunk, skip_special_tokens=True))
+    
+    return chunks
+
 def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     # Needed for stopwords and lemmatizer
     nltk.download('wordnet')
@@ -111,6 +124,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 
     # Initialize the NER model
     ner_model = NERModel(model_name, batch_size)
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     # Create DataLoader
     dataset = SQLiteDataset(db_path)
@@ -120,23 +134,38 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     db = SQLiteDatabase(db_path)
     db.connect()
 
-    # Logging bits
-    original_stdout = sys.stdout
-    original_stderr = sys.stderr
-    log_file = open("./Datasets/Database/NERParsesPerf.txt", "w")
-    sys.stdout = log_file
-    sys.stderr = log_file
     start_time = time.time()
-
+    print(" User note: Max token limit warning message is handled")
     # Process batches
     for batch in dataloader:
         doc_ids, texts = batch
-        ner_results = ner_model.process_batch(list(texts))
+
+        # Split long texts
+        split_texts = []
+        split_doc_ids = []
+        for doc_id, text in zip(doc_ids, texts):
+            chunks = split_text(text, tokenizer)
+            split_texts.extend(chunks)
+            split_doc_ids.extend([doc_id] * len(chunks))
+        
+        # Adjust batch size if necessary
+        ner_batch_size = min(batch_size, len(split_texts))
+
+        # Inference on batch
+        ner_results = ner_model.process_batch(list(split_texts), ner_batch_size)
+
+        # Combine results for split documents
+        combined_results = {}
+        for doc_id, result in zip(split_doc_ids, ner_results):
+            if doc_id not in combined_results:
+                combined_results[doc_id] = []
+            combined_results[doc_id].extend(result)
+
         #print("----------")
         #print(ner_results)
         # Prepare keywords for insertion
         keywords = []
-        for doc_id, result in zip(doc_ids, ner_results):
+        for doc_id, result in combined_results.items():
             for entity in result:
                 original_keyword = entity['word']
                 normalized_keyword = EntityNormalisation(original_keyword)
@@ -148,24 +177,24 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 
         # Insert keywords into the database
         db.insert_keywords(keywords)
+        #k_out = keywords
 
     # Disconnect from the database
     db.disconnect()
-
-    print("NER processing complete. Results written to the database.")
+    #print(k_out)
     end_time = time.time()
     execution_time = end_time - start_time
-    print(f" Execution Time for NER Processing and writing: {execution_time} ")
-    sys.stdout = original_stdout
-    sys.stderr = original_stderr
-    log_file.close()
-    print("NER processing complete. Results written to the database.")
-    print("Log bits written to text file in database folder")
+    print(f" Execution time: {execution_time} seconds \n N-Workers = {n_workers}")
 
 # Usage
 if __name__ == "__main__":
     db_path = './Datasets/Database/NewsGroupDB2.db'
     model_name = 'huggingface-course/bert-finetuned-ner'
-    batch_size = 64
+    batch_size = 24
 
+    #print(torch.__version__)
+    #print(torch.cuda.is_available())
+    #print(torch.backends.cuda.flash_sdp_enabled())
+    #print(torch.version.cuda)
     process_database(db_path, model_name, batch_size)
+    

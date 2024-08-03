@@ -5,6 +5,7 @@ class NERModel:
     def __init__(self, model_name, batch_size=32):
         self.model_name = model_name
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        torch.backends.cuda.flash_sdp_enabled()
         print(f"\nUsing device: {self.device}")
         self.batch_size = batch_size
 
@@ -82,7 +83,7 @@ class NERModel:
         
         return results
 
-    def process_batch(self, texts):
+    def process_batch(self, texts, batch_size):
         """
         Runs NER predictions on the given texts.
 
@@ -100,7 +101,7 @@ class NERModel:
         if isinstance(texts, str):
             texts = [texts]
         
-        raw_results = self.ner_pipeline(texts, batch_size=self.batch_size)
+        raw_results = self.ner_pipeline(texts, batch_size=batch_size)
 
         processed_results = []
         for text, raw_result in zip(texts, raw_results):
