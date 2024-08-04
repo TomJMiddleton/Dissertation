@@ -190,7 +190,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 if __name__ == "__main__":
     db_path = './Datasets/Database/NewsGroupDB2.db'
     model_name = 'huggingface-course/bert-finetuned-ner'
-    batch_size = 24
+    batch_size = 64
 
     #print(torch.__version__)
     #print(torch.cuda.is_available())
