@@ -92,9 +92,9 @@ def TableToCSV(db_path, table_name, fields):
                 csvwriter.writerows(rows)  
 
 
-#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Keywords', ['KeywordID', 'NormalizedKeyword'])
-#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'KeywordVariations', ['VariationID', 'KeywordID', 'OriginalKeyword'])
-#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'DocumentKeywords', ['DocID', 'KeywordID'])
-TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Documents', ['DocID', 'Title', 'CleanedDocument'])
-TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Sentences', ['SentenceID', 'DocID', 'SentenceText'])
+TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Keywords', ['KeywordID', 'NormalizedKeyword'])
+TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'KeywordVariations', ['VariationID', 'KeywordID', 'OriginalKeyword'])
+TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'DocumentKeywords', ['DocID', 'KeywordID'])
+#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Documents', ['DocID', 'Title', 'CleanedDocument'])
+#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Sentences', ['SentenceID', 'DocID', 'SentenceText'])
 #TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'DocumentKeywords', ['DocID1', 'DocID2', 'SimilarityScore'])
