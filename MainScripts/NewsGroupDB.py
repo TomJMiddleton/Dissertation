@@ -2,13 +2,13 @@ import sqlite3, os, re
 from contextlib import closing
 import pandas as pd
 import nltk
-
+from transformers import AutoTokenizer
 from nltk.tokenize import sent_tokenize
 from CreateLocalDB import InstatiateDB
 from NewsGroupPreprocessing import ExtractDocumentIndex, ExtractDocumentText, CleanNewsGroupBasics
 
 document_re = re.compile(r'^Newsgroup:.*?(?=^Newsgroup:|\Z)', re.DOTALL | re.MULTILINE)
-NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB2.db'
+NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB3.db'
 
 def NewsGroupDocumentExtraction():
     dir_names = os.listdir("./Datasets/Raw/20NG/")
@@ -38,7 +38,11 @@ def NewsGroupDocumentExtraction():
 
 
 def NewsGroupSentenceExtraction(newsgroup_doc_df):
+    tokenizer = AutoTokenizer.from_pretrained('huggingface-course/bert-finetuned-ner')
+    # Tokenize sentences from the cleaned document
     newsgroup_doc_df['SentenceText'] = newsgroup_doc_df['CleanedDocument'].apply(sent_tokenize)
+    
+    # Create a new DataFrame to store sentences with DocID
     sentences_df = newsgroup_doc_df.reset_index().rename(columns={'index': 'DocID'})
     sentences_df['DocID'] += 1
     sentences_df = sentences_df.explode('SentenceText')
@@ -52,8 +56,36 @@ def NewsGroupSentenceExtraction(newsgroup_doc_df):
     sentences_df = sentences_df.dropna(subset=['SentenceText'])
     sentences_df = sentences_df[~sentences_df['SentenceText'].apply(CheckNullSentences)]
     sentences_df = sentences_df.reset_index(drop=True)
-    #print(sentences_df.head(200))
-    return sentences_df
+    
+    # Chunk sentences together with a limit of <500 tokens per chunk
+    chunks = []
+    current_chunk = []
+    current_token_count = 0
+    current_doc_id = None
+
+    for _, row in sentences_df.iterrows():
+        sentence = row['SentenceText']
+        doc_id = row['DocID']
+        token_count = len(tokenizer.encode(sentence, add_special_tokens=False))
+        
+        if current_token_count + token_count < 500 and (current_doc_id is None or current_doc_id == doc_id):
+            current_chunk.append(sentence)
+            current_token_count += token_count
+            current_doc_id = doc_id
+        else:
+            chunks.append({'DocID': current_doc_id, 'SentenceText': ' '.join(current_chunk)})
+            current_chunk = [sentence]
+            current_token_count = token_count
+            current_doc_id = doc_id
+
+    # Add the last chunk if there are remaining sentences
+    if current_chunk:
+        chunks.append({'DocID': current_doc_id, 'SentenceText': ' '.join(current_chunk)})
+    
+    # Create a new DataFrame for the chunks
+    chunks_df = pd.DataFrame(chunks)
+    
+    return chunks_df
 
 
 def WriteDataframeToDatabase(df_to_write, table_name, db_filepath):

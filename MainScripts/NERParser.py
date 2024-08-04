@@ -25,14 +25,14 @@ class SQLiteDataset(Dataset):
 
     def __len__(self):
         self._ensure_connection()
-        self.cur.execute("SELECT COUNT(*) FROM Documents") 
+        self.cur.execute("SELECT COUNT(*) FROM Sentences") 
         return self.cur.fetchone()[0]
 
     def __getitem__(self, idx):
         self._ensure_connection()
-        self.cur.execute("SELECT DocID, CleanedDocument FROM Documents WHERE DocID = ?", (idx + 1,))
+        self.cur.execute("SELECT SentenceID, DocID, SentenceText FROM Sentences WHERE SentenceID = ?", (idx + 1,))
         row = self.cur.fetchone()
-        return row[0], row[1] 
+        return row[1], row[2] 
 
     def __del__(self):
         if self.conn:
@@ -110,10 +110,12 @@ def split_text(text, tokenizer, max_length=500, overlap=50):
     tokens = tokenizer.encode(text, add_special_tokens=False)
     
     chunks = []
+    chunks.append(tokenizer.decode(tokens, skip_special_tokens=True))
+    """
     for i in range(0, len(tokens), max_length - overlap):
         chunk = tokens[i:i + max_length]
         chunks.append(tokenizer.decode(chunk, skip_special_tokens=True))
-    
+    """
     return chunks
 
 def process_database(db_path, model_name, batch_size=32, n_workers = 4):
@@ -139,7 +141,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     # Process batches
     for batch in dataloader:
         doc_ids, texts = batch
-
+        
         # Split long texts
         split_texts = []
         split_doc_ids = []
@@ -188,7 +190,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 
 # Usage
 if __name__ == "__main__":
-    db_path = './Datasets/Database/NewsGroupDB2.db'
+    db_path = './Datasets/Database/NewsGroupDB3.db'
     model_name = 'huggingface-course/bert-finetuned-ner'
     batch_size = 64
 

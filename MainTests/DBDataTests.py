@@ -25,18 +25,18 @@ ReviewSentenceTableInTxtFile(db_path='./Datasets/Database/NewsGroupDB.db',
 def ReviewSentenceTableInTxtFile(db_path, output_file, n):
     with closing(sqlite3.connect(db_path)) as conn:
         with closing(conn.cursor()) as cur:
-            cur.execute("SELECT keyword FROM Keyword LIMIT ?", (n,))
+            cur.execute("SELECT DocID, SentenceText FROM Sentences LIMIT ?", (n,))
             entities = cur.fetchall()
             with open(output_file, 'w', encoding='utf-8') as f:
                 for entity in entities:
-                    f.write(entity[0] + '\n')
+                    f.write(str(entity) + '\n')
     print(f"{len(entities)} sentences have been written to {output_file}")
 
 
 # NG entity processing visual check
 """
-ReviewSentenceTableInTxtFile(db_path='./Datasets/Database/NewsGroupDB.db',
-                             output_file = 'db_export_entities.txt',
+ReviewSentenceTableInTxtFile(db_path='./Datasets/Database/NewsGroupDB3.db',
+                             output_file = 'db3_export_entities.txt',
                              n = 3000)
 """
 
@@ -79,6 +79,10 @@ def GetTableCount(db_path, table_name):
 def TableToCSV(db_path, table_name, fields):
     with closing(sqlite3.connect(db_path)) as conn:
         with closing(conn.cursor()) as cur:
+            cur.execute(f"SELECT COUNT(*) FROM {table_name}")
+            row_count = cur.fetchone()[0]
+            print(f"Number of rows in the {table_name} table: {row_count}")
+
             cur.execute(f"SELECT {', '.join(fields)} FROM {table_name}")
             rows = cur.fetchall()
             
@@ -88,9 +92,9 @@ def TableToCSV(db_path, table_name, fields):
                 csvwriter.writerows(rows)  
 
 
-#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Keywords', ['KeywordID', 'NormalizedKeyword'])
-#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'KeywordVariations', ['VariationID', 'KeywordID', 'OriginalKeyword'])
-#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'DocumentKeywords', ['DocID', 'KeywordID'])
-#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Documents', ['DocID', 'Title', 'CleanedDocument'])
-#TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'Sentences', ['SentenceID', 'DocID', 'SentenceText'])
+#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Keywords', ['KeywordID', 'NormalizedKeyword'])
+#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'KeywordVariations', ['VariationID', 'KeywordID', 'OriginalKeyword'])
+#TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'DocumentKeywords', ['DocID', 'KeywordID'])
+TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Documents', ['DocID', 'Title', 'CleanedDocument'])
+TableToCSV('./Datasets/Database/NewsGroupDB3.db', 'Sentences', ['SentenceID', 'DocID', 'SentenceText'])
 #TableToCSV('./Datasets/Database/NewsGroupDB2.db', 'DocumentKeywords', ['DocID1', 'DocID2', 'SimilarityScore'])
