@@ -106,18 +106,6 @@ def EntityNormalisation(entity):
     root_entity = ' '.join(ents)
     return root_entity
 
-def split_text(text, tokenizer, max_length=500, overlap=50):
-    tokens = tokenizer.encode(text, add_special_tokens=False)
-    
-    chunks = []
-    chunks.append(tokenizer.decode(tokens, skip_special_tokens=True))
-    """
-    for i in range(0, len(tokens), max_length - overlap):
-        chunk = tokens[i:i + max_length]
-        chunks.append(tokenizer.decode(chunk, skip_special_tokens=True))
-    """
-    return chunks
-
 def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     # Needed for stopwords and lemmatizer
     nltk.download('wordnet')
@@ -141,24 +129,13 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
     # Process batches
     for batch in dataloader:
         doc_ids, texts = batch
-        
-        # Split long texts
-        split_texts = []
-        split_doc_ids = []
-        for doc_id, text in zip(doc_ids, texts):
-            chunks = split_text(text, tokenizer)
-            split_texts.extend(chunks)
-            split_doc_ids.extend([doc_id] * len(chunks))
-        
-        # Adjust batch size if necessary
-        ner_batch_size = min(batch_size, len(split_texts))
 
         # Inference on batch
-        ner_results = ner_model.process_batch(list(split_texts), ner_batch_size)
+        ner_results = ner_model.process_batch(list(texts), batch_size)
 
         # Combine results for split documents
         combined_results = {}
-        for doc_id, result in zip(split_doc_ids, ner_results):
+        for doc_id, result in zip(doc_ids, ner_results):
             if doc_id not in combined_results:
                 combined_results[doc_id] = []
             combined_results[doc_id].extend(result)
