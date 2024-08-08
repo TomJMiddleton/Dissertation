@@ -118,7 +118,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 
     # Create DataLoader
     dataset = SQLiteDataset(db_path)
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=n_workers, shuffle=False)
 
     # Initialize SQLiteDatabase for writing
     db = SQLiteDatabase(db_path)
