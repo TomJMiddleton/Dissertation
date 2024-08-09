@@ -24,8 +24,11 @@ def PopulateVecEmbeddingsDB(db_path, bi_encoder, output_index_path, embed_dim = 
 
     with closing(sqlite3.connect(db_path)) as conn:
         with closing(conn.cursor()) as cur:
+            current_doc_id = 1
+            curr_embeddings = []
             for batch in tqdm(dataloader, desc="Processing Embeddings"):
                 doc_ids, chunks = batch
+                last_doc_id = doc_ids[-1]
 
                 # Generate embeddings
                 embeddings = bi_encoder.encode(chunks, convert_to_tensor=True)
@@ -33,18 +36,29 @@ def PopulateVecEmbeddingsDB(db_path, bi_encoder, output_index_path, embed_dim = 
 
                 # Group embeddings by DocID
                 doc_embeddings = defaultdict(list)
+                doc_embeddings[current_doc_id] = curr_embeddings
                 for doc_id, embedding in zip(doc_ids, embeddings):
                     doc_embeddings[doc_id].append(embedding)
 
                 batch_updates = []
                 for doc_id, emb_list in doc_embeddings.items():
+                    if doc_id == last_doc_id:
+                        curr_embeddings = doc_embeddings[doc_id]
+                        break
+
                     aggregated_embedding = np.mean(emb_list, axis=0)
                     index.add(np.expand_dims(aggregated_embedding, axis=0))
                     faiss_idx = index.ntotal - 1
                     batch_updates.append((faiss_idx, doc_id))
 
+                current_doc_id = last_doc_id
                 # Update DB with index for Doc:embedding
                 cur.executemany("UPDATE Documents SET FaissIndex = ? WHERE DocID = ?", batch_updates)
+                
+            aggregated_embedding = np.mean(curr_embeddings, axis=0)
+            index.add(np.expand_dims(aggregated_embedding, axis=0))
+            faiss_idx = index.ntotal - 1
+            cur.execute("UPDATE Documents SET FaissIndex = ? WHERE DocID = ?", (faiss_idx, current_doc_id))
 
     # Export vec store
     faiss.write_index(index, output_index_path)
