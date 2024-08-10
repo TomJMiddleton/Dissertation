@@ -1,21 +1,18 @@
-from NERParser import SQLiteDataset, SQLiteDatabase
-import sqlite3
-from contextlib import closing
+from NERParser import SQLiteDataset
+from SentenceBiEncoderModel import SentenceBiEncoder
 from collections import defaultdict
 import faiss
 from tqdm import tqdm
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from torch.utils.data import DataLoader
 
-def PopulateVecEmbeddingsDB(db_path, bi_encoder, output_index_path, embed_dim = 1024, batch_size=32):
+def PopulateVecEmbeddingsDB(db_path, output_index_path, batch_size=32):
     dataset = SQLiteDataset(db_path)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-
+    bi_encoder = SentenceBiEncoder()
     # Create FAISS index with Inner Product metric
     # https://github.com/facebookresearch/faiss/wiki/Guidelines-to-choose-an-index
     # ---PARAMETERS---
-    # embed_dim = 1024  
     d = 1024  # Dimension of embeddings
     M = 64    # Number of sub-quantizers
     D = 4 * M # Dimension after OPQ 
@@ -74,12 +71,10 @@ def PopulateVecEmbeddingsDB(db_path, bi_encoder, output_index_path, embed_dim = 
 
 
 if __name__ == "__main__":
-    model_name = 'dunzhang/stella_en_400M_v5'
     db_path = './Datasets/Database/NewsGroupDB3.db'
     vec_db_path = './Datasets/Database/NGFAISSVec.faiss'
-    bi_encoder = SentenceTransformer(model_name, trust_remote_code=True).cuda()
+    
     print(" --------------------- \n S-Transformer instantiated \n Begin encoding embeddings \n --------------------- \n")
     PopulateVecEmbeddingsDB(db_path,
-                            bi_encoder,
                             vec_db_path,
                             batch_size=16)
