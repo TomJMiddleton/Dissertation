@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
 class SentenceBiEncoder:
     def __init__(self, model_name = 'dunzhang/stella_en_400M_v5'):
@@ -7,3 +8,8 @@ class SentenceBiEncoder:
     
     def EncodeEmbeddings(self, chunks):
         return self.model.encode(chunks)
+    
+    def EncodeQuery(self, q):
+        q = self.model.encode(q, prompt_name="s2p_query")
+        norm =  np.linalg.norm(q)
+        return q / norm

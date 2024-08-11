@@ -91,16 +91,20 @@ class SQLiteDatabase:
             self.conn.rollback()
             print(f"An error occurred: {e}")
     
-    def AddFaissIdxToDB(self, entry_data):
-        try:
-            self.connect()
-            cur = self.conn.cursor()
-            cur.executemany("UPDATE Documents SET FaissIndex = ? WHERE DocID = ?", entry_data)
-            self.conn.commit()
-        except Exception as e:
-            # Rollback in case of error
-            self.conn.rollback()
-            print(f"An error occurred: {e}")
+    def RetrieveDocFromID(self, entry_data):
+        self.connect()
+        cur = self.conn.cursor()
+        # Prepare the SQL query
+        query = """
+            SELECT Title, CleanedDocument
+            FROM Documents
+            WHERE DocID IN ({seq})""".format(seq=','.join(['?']*len(entry_data)))
+
+        # Execute the query with the list of DocIDs
+        cur.execute(query, entry_data)
+        result = cur.fetchall()
+        self.disconnect()
+        return result
 
 
 def EntityNormalisation(entity):
