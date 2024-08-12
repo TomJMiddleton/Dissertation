@@ -5,14 +5,18 @@ import annoy
 import numpy as np
 
 
-def search_index(index, qv, n=20):
+def SearchIndex(index, qv, n=20):
     return index.get_nns_by_vector(qv, n, include_distances=False)
+
+def LoadIndex(index_path = './Datasets/Database/NGAnnoyVec.ann', prefault_mode = False):
+    index = AnnoyIndex(1024, 'angular')
+    index.load(index_path, prefault=prefault_mode)
+    return index
 
 if __name__ == "__main__":
     # Testing System
     print("--------- \n Reading INDEX and instantiating MODEL \n ----------------")
-    index = AnnoyIndex(1024, 'angular')
-    index.load('./Datasets/Database/NGAnnoyVec.ann', prefault=False)
+    index = LoadIndex()
     bi_encoder = SentenceBiEncoder()
 
     print("--------- \n ENCODING QUERY EMBEDDINGS \n ----------------")
@@ -20,7 +24,7 @@ if __name__ == "__main__":
     query_vector = bi_encoder.EncodeQuery([query])[0].tolist()
 
     print("--------- \n SEARCHING INDEX \n ----------------")
-    indices = search_index(index, query_vector)
+    indices = SearchIndex(index, query_vector)
 
     print(f"Query: {query}")
     print("Results:")
