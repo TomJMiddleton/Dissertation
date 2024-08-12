@@ -92,11 +92,11 @@ class SQLiteDatabase:
             print(f"An error occurred: {e}")
     
     def RetrieveDocFromID(self, entry_data):
-        self.connect()
+        self.conn = sqlite3.connect(self.db_path)
         cur = self.conn.cursor()
         # Prepare the SQL query
         query = """
-            SELECT Title, CleanedDocument
+            SELECT DocID, Title, CleanedDocument
             FROM Documents
             WHERE DocID IN ({seq})""".format(seq=','.join(['?']*len(entry_data)))
 

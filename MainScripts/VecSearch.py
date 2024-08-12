@@ -8,8 +8,8 @@ import numpy as np
 def SearchIndex(index, qv, n=20):
     return index.get_nns_by_vector(qv, n, include_distances=False)
 
-def LoadIndex(index_path = './Datasets/Database/NGAnnoyVec.ann', prefault_mode = False):
-    index = AnnoyIndex(1024, 'angular')
+def LoadIndex(dim = 1024, index_path = './Datasets/Database/NGAnnoyVec.ann', prefault_mode = False):
+    index = AnnoyIndex(dim, 'angular')
     index.load(index_path, prefault=prefault_mode)
     return index
 
@@ -36,5 +36,5 @@ if __name__ == "__main__":
     doc_ids = [idx + 1 for idx in indices]
     query_results = db.RetrieveDocFromID(doc_ids)
     for doc in query_results:
-        title, cleaned_document = doc
+        docid, title, cleaned_document = doc
         print(f"\n ---------------- \n Title: {title} \n {cleaned_document[:500]} \n ----------------")

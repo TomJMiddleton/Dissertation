@@ -9,7 +9,8 @@ class SentenceBiEncoder:
     def EncodeEmbeddings(self, chunks):
         return self.model.encode(chunks)
     
-    def EncodeQuery(self, q):
+    def EncodeQueries(self, q):
         q = self.model.encode(q, prompt_name="s2p_query")
-        norm =  np.linalg.norm(q)
-        return q / norm
+        norm = np.linalg.norm(q, axis=-1, keepdims=True)
+        norm_q = q / norm
+        return norm_q.tolist()
