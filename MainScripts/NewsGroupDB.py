@@ -8,7 +8,7 @@ from CreateLocalDB import InstatiateDB
 from NewsGroupPreprocessing import ExtractDocumentIndex, ExtractDocumentText, CleanNewsGroupBasics
 
 document_re = re.compile(r'^Newsgroup:.*?(?=^Newsgroup:|\Z)', re.DOTALL | re.MULTILINE)
-NEWSGROUPDBFILEPATH = './Datasets/Database/NewsGroupDB3.db'
+NEWSGROUPDBFILEPATH = './Datasets/FinalDB/FinalSQLDB.db'
 
 def NewsGroupDocumentExtraction():
     dir_names = os.listdir("./Datasets/Raw/20NG/")

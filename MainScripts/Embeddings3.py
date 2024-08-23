@@ -3,7 +3,6 @@ from annoy import AnnoyIndex
 from NERParser import SQLiteDataset
 from SentenceBiEncoderModel import SentenceBiEncoder
 from collections import defaultdict
-import faiss
 from tqdm import tqdm
 import numpy as np
 from torch.utils.data import DataLoader
@@ -65,7 +64,7 @@ def PopulateVecEmbeddingsDB(db_path, output_index_path, batch_size=32):
 
 if __name__ == "__main__":
     db_path = './Datasets/Database/NewsGroupDB3.db'
-    vec_db_path = './Datasets/Database/NGAnnoyVec.ann'
+    vec_db_path = './Datasets/FinalDB/NGAnnoyVec.ann'
     
     print(" --------------------- \n S-Transformer instantiated \n Begin encoding embeddings \n --------------------- \n")
     PopulateVecEmbeddingsDB(db_path,

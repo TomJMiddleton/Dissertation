@@ -67,16 +67,8 @@ class SQLiteDatabase:
                     keyword_id = result[0]
                 else:
                     # Insert the new normalized keyword
-                    cur.execute("INSERT INTO Keywords (NormalizedKeyword) VALUES (?)", (normalized_keyword,))
+                    cur.execute("INSERT INTO Keywords (NormalizedKeyword, RepresentativeKeyword) VALUES (?, ?)", (normalized_keyword, original_keyword))
                     keyword_id = cur.lastrowid
-                
-                # Check if the original keyword variation already exists
-                cur.execute("SELECT VariationID FROM KeywordVariations WHERE OriginalKeyword = ? AND KeywordID = ?", 
-                                (original_keyword, keyword_id))
-                if not cur.fetchone():
-                    # Insert the new keyword variation
-                    cur.execute("INSERT INTO KeywordVariations (KeywordID, OriginalKeyword) VALUES (?, ?)", 
-                                    (keyword_id, original_keyword))
                 
                 # Check if the document-keyword relationship already exists
                 cur.execute("SELECT * FROM DocumentKeywords WHERE DocID = ? AND KeywordID = ?", (doc_id, keyword_id))
@@ -182,7 +174,7 @@ def process_database(db_path, model_name, batch_size=32, n_workers = 4):
 
 # Usage
 if __name__ == "__main__":
-    db_path = './Datasets/Database/NewsGroupDB3.db'
+    db_path = './Datasets/FinalDB/FinalSQLDB.db'
     model_name = 'huggingface-course/bert-finetuned-ner'
     batch_size = 64
 
