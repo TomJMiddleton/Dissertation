@@ -11,12 +11,15 @@ __pycache__/
 .ipynb_checkpoints
 
 # Data files
-Datasets/Raw/
-Datasets/Processed/
-Datasets/Database/
+Datasets/
 
 # Test Files
 MainTests/DBTestScreenshots
 
 # Research Parts
 Misc/
+
+# Imported ZETT code
+MainScripts/ZETTLIB
+ZETTModel/
+RVQOutput
