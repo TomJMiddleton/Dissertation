@@ -1,0 +1,129 @@
+
+Search completed in 1.5225 seconds
+QUERY: What is JPEG and why do we use that file format?
+
+ANSWER:
+Relevant Information:
+----------------------------------------------------------------------------------------------------
+
+DOC ID: 2606
+DOC Title: comp.graphics39638
+CONFIDENCE: 0.9621215462684631
+DOC TEXT: This FAQ article discusses JPEG image compression. Suggestions for additions and
+clarifications are welcome. New since version of 2 May 1993: * Added info on ImageViewer for NeXT.
+This article includes the following sections:
+
+[1]  What is JPEG? [2]  Why use JPEG? [3]  When should I use JPEG, and when should I stick with GIF?
+[4]  How well does JPEG compress images? [5]  What are good "quality" se...
+----------------------------------------------------------------------------------------------------
+
+DOC ID: 1581
+DOC Title: comp.graphics38403
+CONFIDENCE: 0.8479331135749817
+DOC TEXT: Companies are welcome to use it as the basis for JPEG-related products. We do not ask a
+royalty, although we do ask for an acknowledgement in product literature (see the README file in the
+distribution for details). We hope to make this software industrial-quality --- although, as with
+anything that's free, we offer no warranty and accept no liability. The Independent JPEG Group is a
+volunteer org...
+----------------------------------------------------------------------------------------------------
+
+DOC ID: 1590
+DOC Title: comp.graphics38403
+CONFIDENCE: 0.4501442015171051
+DOC TEXT: If you enlarge the image, you will see that adjacent pixels are often of significantly
+different colors; at normal size the eye averages these pixels together to produce the illusion of
+an intermediate color value. The trouble with dithering is that, to JPEG, it looks like high-
+spatial-frequency color noise; and JPEG can't compress noise very well. The resulting JPEG file is
+both larger and of low...
+----------------------------------------------------------------------------------------------------
+
+DOC ID: 2534
+DOC Title: comp.graphics39078
+CONFIDENCE: 0.4338303506374359
+DOC TEXT: However, the disk space savings may justify converting anyway. This is a decision you'll
+have to make for yourself. If you do convert a GIF library to JPEG, see section 14 for hints. Be
+prepared to leave some images in GIF format, since some GIFs will not convert well. [4]  How well
+does JPEG compress images? Pretty darn well. Here are some sample file sizes for an image I have
+handy, a 727x525 fu...
+----------------------------------------------------------------------------------------------------
+
+DOC ID: 1575
+DOC Title: comp.graphics38403
+CONFIDENCE: 0.38879188895225525
+DOC TEXT: On 8-bit displays, JPEGView usually produces the best color image quality of all the
+currently available Mac JPEG viewers. JPEGView can view large images in much less memory than other
+Mac viewers; in fact, it's the only one that can deal with JPEG images much over 640x480 pixels on a
+typical 4MB Mac. Given a large image, JPEGView automatically scales it down to fit on the screen,
+rather than pres...
+Knowledge Graph Results:
+
+1. Node: USE
+   Directly matched to query: Yes   Edges:
+
+2. Node: JPEG
+   Directly matched to query: Yes   Edges:
+
+     1. Thinking Machines Corp ( is developed by )
+     2. JBIG ( is a director of )
+     3. quality ( has characteristic )
+     4. Compression ( has characteristic )
+     5. QuickTime ( is first published in )
+     6. 24bit ( is the original language of )
+     7. Mark Overmars ( is a platform of )
+     8. hBJ ( after a work by )
+     9. Image Alchemy ( has characteristic )
+     10. Usenet ( is a military branch of )
+     11. Fractal ( is produced by studio )
+     12. GIF ( is written in )
+     13. Joint Photographic Experts Group ( is a director of )
+     14. Text?.jpg ( is made from )
+     15. Windows ('s operating system is )
+     ... and 3 more edges
+3. Node: FORMAT
+   Directly matched to query: Yes   Edges:
+
+     1. Earl ( is based on )
+     2. SC ( is in a list of )
+     3. SCO ( is in a list of )
+     4. above formats ( is a moutain range of )
+     5. above ( is the main subject of )
+     6. CLRview ( is in a list of )
+     7. Sci ( is in a list of )
+4. Node: Files
+   Directly matched to query: Yes   Edges:
+
+     1. SVGA ( is a director of )
+     2. Windows ('s operating system is )
+     3. m_responses.Z ( is a )
+     4. hcr51 ( is in a list of )
+5. Node: Image File Format
+   Directly matched to query: No   Edges:
+
+     1. CompuServe ( is located in )
+     2. GIF ( is a character of )
+6. Node: Independent JPEG Group
+   Directly matched to query: No   Edges:
+
+     1. XV ( is distributed by )
+     2. color quantization ( is distributed by )
+7. Node: bitmap format
+   Directly matched to query: No   Edges:
+
+     1. Windows ('s operating system is )
+8. Node: windows bitmap format
+   Directly matched to query: No   Edges:
+
+     1. Windows ('s operating system is )
+9. Node: File Manager
+   Directly matched to query: No   Edges:
+
+     1. DOS 6 ( shares border with )
+     2. Mike ( is the head of goverment of )
+     3. SLMR ( is a platform of )
+     4. Windows ('s operating system is )
+10. Node: DeltaGraph
+   Directly matched to query: No   Edges:
+
+     1. Windows ('s operating system is )
+     2. Windows 3.1 ( is a platform of )
+Search completed in 1.5225 seconds

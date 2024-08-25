@@ -4,7 +4,9 @@ import torch
 class MyCrossEncoder:
     def __init__(self, model_name = 'cross-encoder/ms-marco-MiniLM-L-6-v2'):
         self.model_name = model_name
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = CrossEncoder(model_name, default_activation_function=torch.nn.Sigmoid())
+        self.model.model = self.model.model.to(self.device)
     
     def ReRankDocuments(self, query, retrieved_documents, top_n=10, window_size=512, overlap=128):
         """
