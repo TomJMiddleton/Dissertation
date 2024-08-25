@@ -1,24 +1,19 @@
+import torch, logging, sqlite3, time, string, textwrap
 import numpy as np
-import torch
-import logging
 from typing import List, Dict, Tuple
 from SentenceBiEncoderModel import SentenceBiEncoder
 from CrossEncoderModel import MyCrossEncoder
 from RVQModel import RVQ
 from annoy import AnnoyIndex
-import sqlite3
-import time
 import networkx as nx
 import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-import string
 import regex as re
 from fuzzywuzzy import fuzz
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
-import textwrap
 
 class NLPSearchSystem:
     def __init__(self, rvq_model_path: str, rvq_annoy_index_path: str, original_annoy_index_path: str,
@@ -109,13 +104,9 @@ class NLPSearchSystem:
         return ' '.join(ents)
 
     def preprocess_text(self, text):
-        # Convert to lowercase
         text = text.lower()
-        # Remove punctuation
         text = text.translate(str.maketrans("", "", string.punctuation))
-        # Tokenize
         tokens = word_tokenize(text)
-        # Remove stopwords
         tokens = [token for token in tokens if token not in self.stop_words]
         return tokens
 
@@ -156,7 +147,7 @@ class NLPSearchSystem:
             normalized_term = self.entity_normalisation(term)
             fuzzy_match, keyword_id = self.fuzzy_match(normalized_term, threshold)
             if fuzzy_match:
-                matched_nodes.add(str(keyword_id))  # Convert to string to match NetworkX node labels
+                matched_nodes.add(str(keyword_id)) 
         
         # Perform a breadth-first search from matched nodes
         subgraph_nodes = set(matched_nodes)
@@ -171,13 +162,9 @@ class NLPSearchSystem:
                 current_depth_nodes = next_depth_nodes
             subgraph_nodes.update(neighbors)
         
-        # Extract the subgraph
-        frozen_subgraph = self.kg.subgraph(subgraph_nodes)
-        
-        # Create a new graph that's a copy of the frozen subgraph
-        subgraph = nx.Graph(frozen_subgraph)
-        
         # Remove self-loops
+        frozen_subgraph = self.kg.subgraph(subgraph_nodes)
+        subgraph = nx.Graph(frozen_subgraph)
         subgraph.remove_edges_from(nx.selfloop_edges(subgraph))
         
         # Visualize the subgraph
@@ -196,11 +183,11 @@ class NLPSearchSystem:
         
         return results, fig
 
-    def visualize_subgraph(self, subgraph: nx.Graph, matched_nodes: set, max_nodes: int = 20) -> plt.Figure:
+    def visualize_subgraph(self, subgraph: nx.Graph, matched_nodes: set, max_nodes: int = 40) -> plt.Figure:
         # Ensure matched_nodes are actually in the subgraph
         matched_nodes = set(matched_nodes) & set(subgraph.nodes())
 
-        # Limit the number of nodes if necessary
+
         if len(subgraph) > max_nodes:
             important_nodes = list(matched_nodes) + [node for node, _ in sorted(subgraph.degree, key=lambda x: x[1], reverse=True) 
                                                     if node not in matched_nodes][:max_nodes-len(matched_nodes)]
@@ -217,7 +204,6 @@ class NLPSearchSystem:
         max_degree = max(dict(subgraph.degree()).values())
         node_sizes = {node: 300 + 200 * (subgraph.degree(node) / max_degree) for node in subgraph.nodes()}
 
-        # Draw non-matched nodes
         non_matched_nodes = set(subgraph.nodes()) - matched_nodes
         nx.draw_networkx_nodes(subgraph, pos, nodelist=list(non_matched_nodes), 
                             node_color='lightblue', node_size=[node_sizes[node] for node in non_matched_nodes])
@@ -227,19 +213,16 @@ class NLPSearchSystem:
 
         nx.draw_networkx_edges(subgraph, pos, edge_color='gray', alpha=0.3, arrows=True, arrowsize=10)
 
-        # Prepare labels
         labels = {node: subgraph.nodes[node]['name'] for node in subgraph.nodes()}
 
-        # Draw labels
         texts = []
         for node, label in labels.items():
             x, y = pos[node]
             texts.append(plt.text(x, y, label, fontsize=8, ha='center', va='center'))
 
-        # Adjust label positions to minimize overlap
+        
         adjust_text(texts, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5), expand_points=(1.2, 1.2))
 
-        # Add edge labels for important relationships, but only for edges connected to matched nodes
         edge_labels = {(u, v): d['relation'] for u, v, d in subgraph.edges(data=True) 
                     if u in matched_nodes or v in matched_nodes}
         nx.draw_networkx_edge_labels(subgraph, pos, edge_labels=edge_labels, font_size=6)
@@ -247,14 +230,13 @@ class NLPSearchSystem:
         plt.title("Knowledge Graph Subgraph", fontsize=20)
         plt.axis('off')
 
-        # Add a legend
         plt.legend([plt.Circle((0,0),1, facecolor='lightgreen'), 
                     plt.Circle((0,0),1, facecolor='lightblue')],
                 ['Matched Nodes', 'Non-matched Nodes'],
                 loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.tight_layout()
-        return plt.gcf()  # Get current figure
+        return plt.gcf() 
 
     def rank_kg_results(self, results, query):
         query_terms = set(self.preprocess_text(query))
@@ -265,7 +247,7 @@ class NLPSearchSystem:
             relevance_score = len(query_terms.intersection(node_terms))
             
             if result['matched']:
-                relevance_score += 5  # Boost directly matched nodes
+                relevance_score += 5
             
             ranked_results.append((relevance_score, result))
         
@@ -352,7 +334,7 @@ class NLPSearchSystem:
         kg_results = kg_results[:kg_n]
         self._log_memory_usage("After KG search")
         
-        # 6. Generate a succinct answer or summary (placeholder)
+        # 6. Generate a succinct answer (placeholder)
         answer = self._generate_answer(query, reranked_results, kg_results)
         self._log_memory_usage("After generating answer")
         
@@ -429,32 +411,7 @@ if __name__ == "__main__":
     end_time = time.time()
     search_time = end_time - start_time
     write_search_results_to_file(result, input_query, search_time, width=100)
-    """
-    print(f"Search completed in {search_time:.4f} seconds")
-    print(f"QUERY: {input_query}")
-    print(result["answer"])
-    print("\nRelevant Information:")
-    for doc_trip in result["relevant_info"]:
-        print("-----------------")
-        print(f"DOC ID: {doc_trip[0]}")
-        print(f"DOC Title: {doc_trip[1]}")
-        print(f"CONFIDENCE: {doc_trip[3]}")
-        print(f"DOC TEXT: {doc_trip[2][:200]}...")  
 
-    print("\nKnowledge Graph Results:")
-    for i, kg_result in enumerate(result["kg_info"], 1):
-        print(f"\n{i}. Node: {kg_result['node']}")
-        print(f"   Directly matched to query: {'Yes' if kg_result['matched'] else 'No'}")
-        print("   Edges:")
-        for j, edge in enumerate(kg_result['edges'][:5], 1): 
-            target_node = search_system.kg.nodes[edge[1]]['name']
-            print(f"     {j}. {target_node} ({edge[2]})")
-        if len(kg_result['edges']) > 5:
-            print(f"     ... and {len(kg_result['edges']) - 5} more edges")
-
-    print(f"\nSearch completed in {search_time:.4f} seconds")
-    """
-    # Display the knowledge graph visualization
     kg_fig = result["kg_visualization"]
     kg_fig.savefig("knowledge_graph_subgraph.png")
     print("\nKnowledge graph visualization saved as 'knowledge_graph_subgraph.png'")
